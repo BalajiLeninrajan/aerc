@@ -31,13 +31,15 @@ jobs:
           fetch-depth: 0
       # the workspace belongs to the runner user, not the container's root
       - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
-      - run: make
+      # --match skips the fedora-latest tag that the publish step moves
+      - run: echo "FULLVER=$(git describe --long --abbrev=12 --tags --match '[0-9]*')" >> "$GITHUB_ENV"
+      - run: make VERSION="$FULLVER"
       - run: make tests
       - run: ./aerc -v
 
       - name: Build RPM
         run: |
-          fullver=$(git describe --long --abbrev=12 --tags)
+          fullver=$FULLVER
           sha=$(git rev-parse --short=12 HEAD)
           git archive --prefix=aerc/ -o aerc.tar.gz HEAD
           rpmbuild -bb .github/aerc.spec \
