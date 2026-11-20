@@ -1,0 +1,32 @@
+---
+name: Linux
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      DESTDIR: ./out
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # git describe needs the release tag to stamp the version
+          fetch-depth: 0
+      - uses: actions/setup-go@v7
+        with:
+          go-version: stable
+          check-latest: true
+      - run: sudo apt-get update && sudo apt-get install -y scdoc
+      - run: make
+      - run: make tests
+      - run: make install
+      - run: make checkinstall
+      - run: ./aerc -v
+      - uses: actions/upload-artifact@v7
+        with:
+          name: aerc-linux-amd64
+          path: out/
