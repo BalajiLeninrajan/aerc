@@ -58,7 +58,7 @@ jobs:
       # Keep one release, fedora-latest, whose asset URL never changes:
       # https://github.com/<owner>/aerc/releases/download/fedora-latest/aerc-fedora45.x86_64.rpm
       - name: Publish to the fedora-latest release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/balaji/term-pixel-size'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
