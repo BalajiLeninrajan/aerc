@@ -111,8 +111,25 @@ func (term *Terminal) Draw(ctx *ui.Context) {
 		}
 	}
 	w, h := ctx.Window().Size()
-	term.vterm.Update(vaxis.Resize{Cols: w, Rows: h})
+	term.vterm.Update(termSize(w, h))
 	term.vterm.Draw(ctx.Window())
+}
+
+// termSize returns the size of a w x h cell terminal, in pixels as well as
+// cells, using the host terminal's cell size. Without the pixel size, vaxis
+// assumes 1x1 pixel cells: a sixel image from the child (w3m -sixel) then
+// counts one row per pixel and scrolls the rest of the screen away.
+func termSize(w, h int) vaxis.Resize {
+	size := vaxis.Resize{Cols: w, Rows: h}
+	if ui.Vaxis() == nil {
+		return size
+	}
+	host := ui.Vaxis().Size()
+	if host.Cols > 0 && host.Rows > 0 && host.XPixel > 0 && host.YPixel > 0 {
+		size.XPixel = w * (host.XPixel / host.Cols)
+		size.YPixel = h * (host.YPixel / host.Rows)
+	}
+	return size
 }
 
 func (term *Terminal) Show(visible bool) {
