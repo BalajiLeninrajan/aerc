@@ -14,7 +14,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: fedora:43
+    container: fedora:45
     env:
       # the wrap filter refuses to run in a non-UTF-8 locale
       LANG: C.UTF-8
@@ -46,27 +46,27 @@ jobs:
             --define "ver ${fullver%%-*}" \
             --define "rel ${GITHUB_RUN_NUMBER}.git${sha}" \
             --define "fullver $fullver"
-          cp rpms/x86_64/aerc-*.rpm aerc-fedora43.x86_64.rpm
-          rpm -qip aerc-fedora43.x86_64.rpm
+          cp rpms/x86_64/aerc-*.rpm aerc-fedora45.x86_64.rpm
+          rpm -qip aerc-fedora45.x86_64.rpm
       - uses: actions/upload-artifact@v7
         with:
-          name: aerc-fedora43-x86_64
+          name: aerc-fedora45-x86_64
           path: rpms/x86_64/*.rpm
 
       # Keep one release, fedora-latest, whose asset URL never changes:
-      # https://github.com/<owner>/aerc/releases/download/fedora-latest/aerc-fedora43.x86_64.rpm
+      # https://github.com/<owner>/aerc/releases/download/fedora-latest/aerc-fedora45.x86_64.rpm
       - name: Publish to the fedora-latest release
         if: github.event_name == 'push' && github.ref == 'refs/heads/balaji/term-pixel-size'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          nevra=$(rpm -qp --qf '%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}' aerc-fedora43.x86_64.rpm)
+          nevra=$(rpm -qp --qf '%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}' aerc-fedora45.x86_64.rpm)
           git tag -f fedora-latest
           git push -f origin fedora-latest
-          notes="$nevra, built from $GITHUB_SHA. Install with: sudo dnf install https://github.com/$GH_REPO/releases/download/fedora-latest/aerc-fedora43.x86_64.rpm"
+          notes="$nevra, built from $GITHUB_SHA. Install with: sudo dnf install https://github.com/$GH_REPO/releases/download/fedora-latest/aerc-fedora45.x86_64.rpm"
           if gh release view fedora-latest >/dev/null 2>&1; then
-            gh release edit fedora-latest --notes "$notes"
+            gh release edit fedora-latest --title "Fedora 45 build" --notes "$notes"
           else
-            gh release create fedora-latest --title "Fedora 43 build" --notes "$notes"
+            gh release create fedora-latest --title "Fedora 45 build" --notes "$notes"
           fi
-          gh release upload fedora-latest aerc-fedora43.x86_64.rpm --clobber
+          gh release upload fedora-latest aerc-fedora45.x86_64.rpm --clobber
