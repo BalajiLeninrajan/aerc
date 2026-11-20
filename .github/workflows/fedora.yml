@@ -3,21 +3,29 @@ name: Fedora
 
 on:
   push:
+    # branches only: the fedora-latest tag this job moves must not retrigger it
+    branches: ["**"]
   pull_request:
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
     container: fedora:43
     env:
-      DESTDIR: ./out
       # the wrap filter refuses to run in a non-UTF-8 locale
       LANG: C.UTF-8
+      GOFLAGS: -tags=notmuch
+      GH_REPO: ${{ github.repository }}
     steps:
       # git must be installed before checkout, or it falls back to a
       # tarball with no history and git describe can't stamp the version
-      - run: dnf install -y --setopt=install_weak_deps=False git make gcc golang scdoc diffutils
+      - run: >
+          dnf install -y --setopt=install_weak_deps=False
+          git make gcc golang scdoc diffutils notmuch-devel rpm-build gh
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
@@ -25,10 +33,40 @@ jobs:
       - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
       - run: make
       - run: make tests
-      - run: make install
-      - run: make checkinstall
       - run: ./aerc -v
+
+      - name: Build RPM
+        run: |
+          fullver=$(git describe --long --abbrev=12 --tags)
+          sha=$(git rev-parse --short=12 HEAD)
+          git archive --prefix=aerc/ -o aerc.tar.gz HEAD
+          rpmbuild -bb .github/aerc.spec \
+            --define "_sourcedir $PWD" \
+            --define "_rpmdir $PWD/rpms" \
+            --define "ver ${fullver%%-*}" \
+            --define "rel ${GITHUB_RUN_NUMBER}.git${sha}" \
+            --define "fullver $fullver"
+          cp rpms/x86_64/aerc-*.rpm aerc-fedora43.x86_64.rpm
+          rpm -qip aerc-fedora43.x86_64.rpm
       - uses: actions/upload-artifact@v7
         with:
           name: aerc-fedora43-x86_64
-          path: out/
+          path: rpms/x86_64/*.rpm
+
+      # Keep one release, fedora-latest, whose asset URL never changes:
+      # https://github.com/<owner>/aerc/releases/download/fedora-latest/aerc-fedora43.x86_64.rpm
+      - name: Publish to the fedora-latest release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/balaji/term-pixel-size'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          nevra=$(rpm -qp --qf '%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}' aerc-fedora43.x86_64.rpm)
+          git tag -f fedora-latest
+          git push -f origin fedora-latest
+          notes="$nevra, built from $GITHUB_SHA. Install with: sudo dnf install https://github.com/$GH_REPO/releases/download/fedora-latest/aerc-fedora43.x86_64.rpm"
+          if gh release view fedora-latest >/dev/null 2>&1; then
+            gh release edit fedora-latest --notes "$notes"
+          else
+            gh release create fedora-latest --title "Fedora 43 build" --notes "$notes"
+          fi
+          gh release upload fedora-latest aerc-fedora43.x86_64.rpm --clobber
