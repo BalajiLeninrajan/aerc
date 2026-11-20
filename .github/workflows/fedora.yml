@@ -12,10 +12,12 @@ jobs:
     container: fedora:43
     env:
       DESTDIR: ./out
+      # the wrap filter refuses to run in a non-UTF-8 locale
+      LANG: C.UTF-8
     steps:
       # git must be installed before checkout, or it falls back to a
       # tarball with no history and git describe can't stamp the version
-      - run: dnf install -y --setopt=install_weak_deps=False git make gcc golang scdoc
+      - run: dnf install -y --setopt=install_weak_deps=False git make gcc golang scdoc diffutils
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
