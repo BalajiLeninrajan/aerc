@@ -1,5 +1,19 @@
 # aerc
 
+> [!NOTE]
+> This is a personal fork of [aerc](https://git.sr.ht/~rjarry/aerc). Report
+> bugs and send patches upstream, not here. The fork adds two things:
+>
+> - The embedded terminal gets the host terminal's pixel size, so sixel
+>   images (from `w3m -sixel` in the html filter, say) render in place
+>   instead of scrolling the message off screen.
+> - GitHub Actions builds a Fedora RPM on every push to `main` and attaches
+>   it to the
+>   [`fedora-latest`](https://github.com/BalajiLeninrajan/aerc/releases/tag/fedora-latest)
+>   release.
+>
+> Everything below is the upstream README.
+
 ![logo](https://git.sr.ht/~rjarry/aerc/blob/master/contrib/logo.svg)
 
 [![builds.sr.ht status](https://builds.sr.ht/~rjarry/aerc.svg)](https://builds.sr.ht/~rjarry/aerc)
